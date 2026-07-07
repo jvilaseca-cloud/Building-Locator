@@ -14,7 +14,7 @@
   <!-- iOS home screen app behavior -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Bldg Locator">
+  <meta name="apple-mobile-web-app-title" content="Locator">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <style>
@@ -85,7 +85,39 @@
       box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
     }
     input[type="text"]::placeholder { color: #666; }
-    .tab-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .locations-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 10px 2px;
+      margin-top: 5px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .locations-toggle span.label {
+      color: #ff6666;
+      font-size: 15px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .locations-toggle .chevron {
+      color: #ff6666;
+      font-size: 18px;
+      transition: transform 0.25s;
+    }
+    .locations-toggle.expanded .chevron {
+      transform: rotate(180deg);
+    }
+    .tab-filters {
+      display: none;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .tab-filters.expanded { display: flex; }
     .tab-filter-btn {
       padding: 12px 20px;
       border: 2px solid #cc0000;
@@ -216,6 +248,10 @@
 
   <div class="search-container">
     <input type="text" id="searchInput" placeholder="SEARCH BUILDING NUMBER OR NAME..." autocomplete="off">
+    <div class="locations-toggle" id="locationsToggle">
+      <span class="label">📍 Locations</span>
+      <span class="chevron">▾</span>
+    </div>
     <div class="tab-filters" id="tabFilters"></div>
   </div>
 
@@ -289,6 +325,13 @@
 
     document.getElementById('searchInput').addEventListener('input', function() {
       displayResults(getFilteredBuildings());
+    });
+
+    document.getElementById('locationsToggle').addEventListener('click', function() {
+      const toggle = document.getElementById('locationsToggle');
+      const filters = document.getElementById('tabFilters');
+      toggle.classList.toggle('expanded');
+      filters.classList.toggle('expanded');
     });
 
     function displayResults(buildings) {
