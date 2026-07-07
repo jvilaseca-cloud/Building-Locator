@@ -1,6 +1,6 @@
 {
   "name": "Building Locator",
-  "short_name": "BldgLocator",
+  "short_name": "Locator",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
