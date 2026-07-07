@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+  <title>Building Locator</title>
+
+  <!-- PWA / "Add to Home Screen" app-like behavior. This works properly here
+       (unlike on Apps Script) because this page IS the top-level document -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a1a">
+
+  <!-- iOS home screen app behavior -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bldg Locator">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      overscroll-behavior: none;
+      height: 100%;
+    }
+    body {
+      font-family: 'Arial Black', Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 15px;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      padding-top: max(15px, env(safe-area-inset-top));
+      padding-bottom: max(15px, env(safe-area-inset-bottom));
+      padding-left: max(15px, env(safe-area-inset-left));
+      padding-right: max(15px, env(safe-area-inset-right));
+    }
+    input[type="text"] {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .header {
+      background: linear-gradient(135deg, #000000 0%, #2d0000 100%);
+      padding: 20px;
+      border-radius: 10px;
+      border: 3px solid #cc0000;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(204, 0, 0, 0.3);
+    }
+    h1 {
+      color: #ff0000;
+      font-size: 28px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+      margin-bottom: 5px;
+    }
+    .subtitle { color: #999; font-size: 14px; font-weight: normal; font-family: Arial, sans-serif; }
+    .search-container {
+      background: #000;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #cc0000;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(204, 0, 0, 0.2);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: bold;
+      border: 3px solid #cc0000;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #ff0000;
+      background: #2d0000;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+    input[type="text"]::placeholder { color: #666; }
+    .tab-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .tab-filter-btn {
+      padding: 12px 20px;
+      border: 2px solid #cc0000;
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      min-width: 100px;
+    }
+    .tab-filter-btn:hover {
+      border-color: #ff0000;
+      background: #2d0000;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+    .tab-filter-btn.active {
+      background: #cc0000;
+      color: #fff;
+      border-color: #ff0000;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+    .results {
+      background: #000;
+      border-radius: 10px;
+      border: 2px solid #cc0000;
+      box-shadow: 0 4px 20px rgba(204, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .results-count {
+      padding: 15px 20px;
+      background: #1a1a1a;
+      border-bottom: 2px solid #cc0000;
+      font-size: 16px;
+      color: #ff0000;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .building-card {
+      padding: 20px;
+      border-bottom: 2px solid #2d0000;
+      transition: all 0.3s;
+      background: #0a0a0a;
+    }
+    .building-card:hover { background: #1a1a1a; border-left: 5px solid #ff0000; padding-left: 25px; }
+    .building-card:last-child { border-bottom: none; }
+    .building-number {
+      font-size: 32px;
+      font-weight: bold;
+      color: #ff0000;
+      margin-bottom: 8px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+      letter-spacing: 2px;
+    }
+    .building-name { color: #ccc; margin-bottom: 12px; font-size: 18px; font-weight: normal; }
+    .card-footer { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .tab-label {
+      display: inline-block;
+      background: #2d0000;
+      color: #ff6666;
+      padding: 6px 12px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: bold;
+      border: 1px solid #cc0000;
+      text-transform: uppercase;
+    }
+    .directions-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #cc0000 0%, #ff0000 100%);
+      color: #fff;
+      padding: 14px 24px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+      border: 2px solid #ff0000;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(204, 0, 0, 0.4);
+    }
+    .directions-btn:hover {
+      background: linear-gradient(135deg, #ff0000 0%, #ff3333 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 0, 0, 0.6);
+    }
+    .directions-btn.apple {
+      background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+      border-color: #666;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+    .directions-btn.apple:hover {
+      background: linear-gradient(135deg, #333 0%, #444 100%);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    }
+    .directions-btn:active { transform: translateY(0); }
+    .no-results, .loading { padding: 60px 20px; text-align: center; color: #999; font-size: 20px; }
+    .loading { color: #ff0000; font-weight: bold; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .emergency-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: #ff0000;
+      border-radius: 50%;
+      margin-right: 10px;
+      animation: pulse 2s infinite;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 22px; }
+      .building-number { font-size: 28px; }
+      .directions-btn { width: 100%; text-align: center; }
+      input[type="text"] { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><span class="emergency-indicator"></span>🚒 BUILDING LOCATOR</h1>
+    <div class="subtitle">Emergency Response System</div>
+  </div>
+
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="SEARCH BUILDING NUMBER OR NAME..." autocomplete="off">
+    <div class="tab-filters" id="tabFilters"></div>
+  </div>
+
+  <div id="results" class="results">
+    <div class="loading">⏳ LOADING BUILDING DATA...</div>
+  </div>
+
+  <script>
+    // Your Apps Script web app URL. This now acts purely as a JSON data API —
+    // the page itself is hosted here on GitHub Pages instead of by Apps Script,
+    // which is what lets the manifest/icon actually work on iOS/Android.
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXK7flLHIXZJuZ8uR2oTyFy6KN-uOh2zUVUeXtldORiI_cQf6WMMzcJTBy7N5fuMlW/exec';
+
+    let allBuildings = [];
+    let selectedTab = 'All';
+
+    fetch(APPS_SCRIPT_URL + '?page=data')
+      .then(function(res) {
+        if (!res.ok) throw new Error('Request failed: ' + res.status);
+        return res.json();
+      })
+      .then(function(data) {
+        allBuildings = data;
+        createTabButtons();
+        displayResults(getFilteredBuildings());
+      })
+      .catch(function(error) {
+        document.getElementById('results').innerHTML =
+          '<div class="no-results">⚠️ ERROR LOADING DATA<br><br>' + error + '</div>';
+      });
+
+    function createTabButtons() {
+      const tabs = [...new Set(allBuildings.map(b => b.tab))].sort();
+      const tabFiltersDiv = document.getElementById('tabFilters');
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'tab-filter-btn active';
+      allBtn.textContent = 'ALL (' + allBuildings.length + ')';
+      allBtn.onclick = () => selectTab('All', allBtn);
+      tabFiltersDiv.appendChild(allBtn);
+
+      tabs.forEach(tab => {
+        const count = allBuildings.filter(b => b.tab === tab).length;
+        const btn = document.createElement('button');
+        btn.className = 'tab-filter-btn';
+        btn.textContent = tab.toUpperCase() + ' (' + count + ')';
+        btn.onclick = (e) => selectTab(tab, e.target);
+        tabFiltersDiv.appendChild(btn);
+      });
+    }
+
+    function selectTab(tab, buttonElement) {
+      selectedTab = tab;
+      document.querySelectorAll('.tab-filter-btn').forEach(btn => btn.classList.remove('active'));
+      buttonElement.classList.add('active');
+      displayResults(getFilteredBuildings());
+    }
+
+    function getFilteredBuildings() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      let filtered = allBuildings;
+      if (selectedTab !== 'All') filtered = filtered.filter(b => b.tab === selectedTab);
+      if (searchTerm) {
+        filtered = filtered.filter(building =>
+          building.buildingNumber.toLowerCase().includes(searchTerm) ||
+          building.name.toLowerCase().includes(searchTerm)
+        );
+      }
+      return filtered;
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+      displayResults(getFilteredBuildings());
+    });
+
+    function displayResults(buildings) {
+      const resultsDiv = document.getElementById('results');
+      if (buildings.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results">❌ NO BUILDINGS FOUND</div>';
+        return;
+      }
+      const countHtml = `<div class="results-count">📍 ${buildings.length} BUILDING${buildings.length !== 1 ? 'S' : ''} FOUND</div>`;
+      const cardsHtml = buildings.map(building => `
+        <div class="building-card">
+          <div class="building-number">${building.buildingNumber}</div>
+          ${building.name ? `<div class="building-name">${building.name}</div>` : ''}
+          <div class="card-footer">
+            <span class="tab-label">${building.tab}</span>
+            ${building.google ? `<a href="${building.google}" target="_blank" class="directions-btn">🧭 GOOGLE MAPS</a>` : ''}
+            ${building.apple ? `<a href="${building.apple}" target="_blank" class="directions-btn apple">🗺️ APPLE MAPS</a>` : ''}
+          </div>
+        </div>
+      `).join('');
+      resultsDiv.innerHTML = countHtml + cardsHtml;
+    }
+  </script>
+</body>
+</html>
